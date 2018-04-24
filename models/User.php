@@ -123,7 +123,7 @@ class User extends \yii\db\ActiveRecord implements \yii\web\IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function getAuthKey()
+    public function getAuthKey() : string
     {
         return '';
     }
@@ -131,7 +131,7 @@ class User extends \yii\db\ActiveRecord implements \yii\web\IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function validateAuthKey($authKey)
+    public function validateAuthKey($authKey) : bool
     {
         return true;
     }
@@ -145,9 +145,10 @@ class User extends \yii\db\ActiveRecord implements \yii\web\IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public static function findIdentity($id)
+    public static function findIdentity($id) : ?User
     {
-        return UserManager::findIdentity($id);
+        $um = new UserManager();
+        return $um->findIdentity($id);
     }
 
 }

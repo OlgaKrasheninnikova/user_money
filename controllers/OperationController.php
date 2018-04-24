@@ -71,8 +71,11 @@ class OperationController extends Controller
             $operationManager = new OperationManager();
             try {
                 $um = new UserManager();
-                $userTo = $um->getUserObjectByName($model->to_user_name);
-                $operationManager->execute(Yii::$app->user->identity, $userTo, $model->getAttribute('amount'));
+                $userTo = $um->getUserByName($model->to_user_name);
+                \Yii::$container->invoke(
+                    [$operationManager, 'execute'],
+                    ['fromUser' => Yii::$app->user->identity, 'toUser' => $userTo, 'amount' => $model->getAttribute('amount')]
+                );
             } catch (\Exception $e) {
                 return $this->render('create', [
                     'model' => $model,

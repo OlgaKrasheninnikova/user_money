@@ -14,15 +14,15 @@ class OperationManager{
 
 
     /**
-     * Executes money transfer
      * @param User $fromUser
      * @param User $toUser
      * @param float $amount
+     * @param Operation $operation
      * @return bool
      * @throws Exception
      * @throws \yii\db\Exception
      */
-    public function execute(User $fromUser, User $toUser, float $amount) : bool {
+    public function execute(User $fromUser, User $toUser, float $amount, Operation $operation) : bool {
         if ($fromUser->id == $toUser->id) {
             throw new Exception('User can\'t move money to his own bill');
         }
@@ -33,14 +33,18 @@ class OperationManager{
 
         $transaction = \Yii::$app->db->beginTransaction();
 
-        if ($fromUser->save() && $toUser->save() && $this->createOperation($fromUser, $toUser, $amount)) {
-            $transaction->commit();
-            return true;
+        if ($fromUser->save() && $toUser->save() && $this->createOperation($fromUser, $toUser, $amount, $operation)) {
+            try {
+                $transaction->commit();
+            } catch (Exception $e) {
+                $transaction->rollBack();
+                throw new Exception('Can\'t save changes');
+            }
         } else {
             $transaction->rollBack();
             throw new Exception('Can\'t save changes');
         }
-
+        return true;
     }
 
 
@@ -48,17 +52,16 @@ class OperationManager{
      * @param User $fromUser
      * @param User $toUser
      * @param float $amount
+     * @param Operation $operation
      * @return bool
      */
-    public function createOperation(User $fromUser, User $toUser, float $amount) : bool {
+    public function createOperation(User $fromUser, User $toUser, float $amount, Operation $operation) : bool {
         if (!$amount || !$fromUser->id || !$toUser->id) {
             return false;
         }
         if ($fromUser->id == $toUser->id) {
             return false;
         }
-
-        $operation = new Operation();
         $operation->scenario = Operation::SCENARIO_USER_PAY;
         $operation->setAttribute('from_user_id', $fromUser->id);
         $operation->setAttribute('to_user_id', $toUser->id);

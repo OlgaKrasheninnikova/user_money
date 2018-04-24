@@ -1,22 +1,15 @@
 <?php
-require_once 'UserTrait.php';
-
-
 use \PHPUnit\Framework\TestResult;
-use \app\models\UserManager;
 use \app\models\OperationManager;
 use \app\models\Operation;
+use \app\models\User;
 
 class OperationManagerTest extends \Codeception\Test\Unit
 {
-    use UserTrait;
     /**
      * @var \UnitTester
      */
     protected $tester;
-
-    /** @var OperationManager */
-    private $operationManager;
 
     /**
      * @var \yii\db\Transaction
@@ -25,13 +18,10 @@ class OperationManagerTest extends \Codeception\Test\Unit
     
     protected function _before()
     {
-        $this->operationManager = new OperationManager();
-        $this->transaction = Yii::$app->db->beginTransaction();
     }
 
     protected function _after()
     {
-        $this->transaction->rollBack();
     }
 
     public function count() : int {
@@ -47,43 +37,41 @@ class OperationManagerTest extends \Codeception\Test\Unit
     // tests
     public function testCreateOperationOk()
     {
-        $user1 = $this->createUser('user1');
-        $user2 = $this->createUser('user2');
+        $user1 = $this->make(User::class, ['id' => 10]);
+        $user2 = $this->make(User::class, ['id' => 12]);
+        $operation = $this->make(Operation::class, ['id' => 12, 'save' => true]);
         $amount = 100;
-        $ok = $this->operationManager->createOperation($user1, $user2, $amount);
+
+        $om = new OperationManager();
+        $ok = $om->createOperation($user1, $user2, $amount, $operation);
         $this->assertTrue($ok);
-        $foundOp = Operation::find()
-            ->where(['from_user_id' => $user1->id, 'to_user_id' => $user2->id, 'amount' => $amount])
-            ->one();
-        $this->assertInstanceOf('app\models\Operation', $foundOp);
     }
 
     public function testCreateOperationError()
     {
-        $user1 = $this->createUser('user1');
+        $user = $this->make(User::class, ['id' => 10]);
+        $operation = $this->make(Operation::class, ['id' => 12, 'save' => true]);
         $amount = 100;
-        $ok = $this->operationManager->createOperation($user1, $user1, $amount);
+
+        $om = new OperationManager();
+        $ok = $om->createOperation($user, $user, $amount, $operation);
         $this->assertFalse($ok);
-        $foundOp = Operation::find()
-            ->where(['from_user_id' => $user1->id, 'to_user_id' => $user1->id, 'amount' => $amount])
-            ->one();
-        $this->assertNull($foundOp);
     }
 
+
     public function testExecute() {
-        $user1 = $this->createUser('user1');
-        $user2 = $this->createUser('user2');
+        $user1BeforeBalance = 100;
+        $user2BeforeBalance = 200;
         $amount = 30.3;
-        $ok = $this->operationManager->execute($user1, $user2, $amount);
+        $user1 = $this->make(User::class, ['id' => 10, 'balance' => $user1BeforeBalance, 'save' => true]);
+        $user2 = $this->make(User::class, ['id' => 12, 'balance' => $user2BeforeBalance, 'save' => true]);
+        $operation = $this->make(Operation::class, ['id' => 12, 'save' => true]);
+        $om = new OperationManager();
+        $ok = $om->execute($user1, $user2, $amount, $operation);
         $this->assertTrue($ok);
-        $user1 = UserManager::findIdentity($user1->id);
-        $user2 = UserManager::findIdentity($user2->id);
-        $this->assertEquals($user1->balance, -$amount);
-        $this->assertEquals($user2->balance, $amount);
-        $foundOp = Operation::find()
-            ->where(['from_user_id' => $user1->id, 'to_user_id' => $user2->id])
-            ->one();
-        $this->assertInstanceOf('app\models\Operation', $foundOp);
+        $this->assertEquals($user1->balance, $user1BeforeBalance - $amount);
+        $this->assertEquals($user2->balance, $user2BeforeBalance + $amount);
+        $this->assertEquals($operation->amount, $amount);
     }
 
 }

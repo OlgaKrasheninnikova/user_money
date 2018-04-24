@@ -5,6 +5,7 @@ namespace app\models;
 
 use \app\models\User;
 use yii\base\Exception;
+use yii\base\InvalidArgumentException;
 
 /**
  * Class UserManager
@@ -27,10 +28,10 @@ class UserManager{
     /**
      * @param string $userName
      * @return bool
+     * @throws Exception
      */
     public function login(string $userName) : bool {
-        $user = UserManager::findByUsername($userName);
-        if (!$user) $user = $this->createUser($userName);
+        $user = $this->getUserByName($userName);
         return \Yii::$app->user->login($user);
     }
 
@@ -40,9 +41,9 @@ class UserManager{
      * @return \app\models\User
      * @throws Exception
      */
-    public function createUser(string $userName) : User {
-        if (!$userName) {
-            throw new Exception('No name for new user');
+    private function createUserByName(string $userName) : User {
+        if (!trim($userName)) {
+            throw new InvalidArgumentException('No name for new user');
         }
         $user = new User();
         $user->load(['User' => ['username' => $userName]]);
@@ -60,10 +61,10 @@ class UserManager{
      * @return \app\models\User
      * @throws Exception
      */
-    public function getUserObjectByName(string $userName) : User {
-        $user = UserManager::findByUsername($userName);
+    public function getUserByName(string $userName) : User {
+        $user = $this->findByUsername($userName);
         if (!$user) {
-            $user = $this->createUser($userName);
+            $user = $this->createUserByName($userName);
             if (!$user) {
                 throw new Exception("User '$userName' not found");
             }
@@ -75,7 +76,7 @@ class UserManager{
      * @param $id
      * @return null|User
      */
-    public static function findIdentity($id)
+    public function findIdentity($id) : ?User
     {
         return User::findOne(['id' => $id]);
     }
@@ -84,7 +85,7 @@ class UserManager{
      * @param $username
      * @return null|User
      */
-    public static function findByUsername($username)
+    public function findByUsername($username) : ?User
     {
         return User::findOne(['username' => $username]);
     }
@@ -101,13 +102,20 @@ class UserManager{
      * @return array
      */
     public function getNamesByIds(array $idList) : array {
-        $usersList = User::find()->where(['id' => $idList])->all();
         $res = [];
-        foreach ($usersList as $user) {
+        foreach ($this->getUsersByIds($idList) as $user) {
             /* User $user */
             $res[$user->id] = $user->username;
         }
         return $res;
+    }
+
+    /**
+     * @param array $idList
+     * @return array
+     */
+    public function getUsersByIds(array $idList) : array {
+        return User::find()->where(['id' => $idList])->all();
     }
 
 }
