@@ -62,25 +62,11 @@ class UserManagerTest extends \Codeception\Test\Unit
         $this->assertEquals($userReturned->username, $user->username);
     }
 
-
-    public function testGetUserByNameNew() {
-        $username = 'newname';
-        /** @var UserManager $um */
-        $um = $this->make(UserManager::class, [
-            'findByUsername' => null,
-            'createUserByName' => $this->_mockCreateUserByName($username)
-        ]);
-        $user = $um->getUserByName($username);
-        $this->assertInternalType('object', $user);
-        $this->assertEquals($username, $user->username);
-    }
-
     public function testLoginExist() {
         $user = Stub::make(User::class, ['username' => 'davert', 'id' => 5]);
         /** @var UserManager $um */
         $um = $this->make(UserManager::class, [
-            'findByUsername' => null,
-            'createUserByName' => $this->_mockCreateUserByName($user->username)
+            'getUserByName' => $user
         ]);
         $ok = $um->login($user->username);
         $this->assertTrue($ok);
@@ -94,8 +80,7 @@ class UserManagerTest extends \Codeception\Test\Unit
         $username = 'newname';
         /** @var UserManager $um */
         $um = $this->make(UserManager::class, [
-            'findByUsername' => null,
-            'createUserByName' => $this->_mockCreateUserByName($username)
+            'getUserByName' => $this->_mockCreateUserByName($username)
         ]);
         $ok = $um->login($username);
         $this->assertTrue($ok);
